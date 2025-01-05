@@ -9,9 +9,6 @@ java {
     targetCompatibility = JavaVersion.VERSION_17
 }
 
-group = 'org.team7525'
-version = '1.0.0'
-
 // Publishing configuration for GitHub Packages
 publishing {
     publications {
@@ -20,7 +17,7 @@ publishing {
             
             groupId = 'com.github.FRC-7525'
             artifactId = 'pioneerslib'
-            version = '1.0.0'
+            version = '1.0.1'
             
             pom {
                 name = 'pioneersLib'
