@@ -12,6 +12,43 @@ java {
 group = 'org.team7525'
 version = '1.0.0'
 
+// Publishing configuration for GitHub Packages
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            
+            groupId = 'com.github.FRC-7525'
+            artifactId = 'PioneersLib'
+            version = '1.0.0'
+            
+            pom {
+                name = 'PioneersLib'
+                description = 'FRC Team 7525s Utility Library'
+                url = 'https://github.com/FRC-7525/PioneersLib'
+                
+                developers {
+                    developer {
+                        id = 'GreenTomato5'
+                        name = 'Otto'
+                        email = 'grentomato@gmail.com'
+                    }
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/FRC-7525/PioneersLib")
+            credentials {
+                username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_USERNAME")
+                password = project.findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
+}
+
 //AKIT
 repositories {
     maven {
