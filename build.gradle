@@ -19,11 +19,11 @@ publishing {
             from components.java
             
             groupId = 'com.github.FRC-7525'
-            artifactId = 'PioneersLib'
+            artifactId = 'pioneerslib'
             version = '1.0.0'
             
             pom {
-                name = 'PioneersLib'
+                name = 'pioneersLib'
                 description = 'FRC Team 7525s Utility Library'
                 url = 'https://github.com/FRC-7525/PioneersLib'
                 
