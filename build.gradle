@@ -17,7 +17,7 @@ publishing {
             
             groupId = 'com.github.FRC-7525'
             artifactId = 'pioneerslib'
-            version = '1.0.1'
+            version = '1.0.3'
             
             pom {
                 name = 'pioneersLib'
@@ -29,6 +29,16 @@ publishing {
                         id = 'GreenTomato5'
                         name = 'Otto'
                         email = 'grentomato@gmail.com'
+                    }
+                    developer {
+                        id ="Potmannob"
+                        name = "Thien"
+                        email = "Thiennguyen4913@gmail.com"
+                    }
+                    developer {
+                        id = "SSBASLD"
+                        name = "William"
+                        email = "anotherperson51@gmail.com"
                     }
                 }
             }
