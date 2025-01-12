@@ -40,11 +40,11 @@ public abstract class Subsystem<StateType extends SubsystemStates> extends Subsy
 		// Commented out bc bad code
 		// Logger.recordOutput(subsystemName + "/state", state.getStateString());
 		// if (!DriverStation.isEnabled()) return;
+		
+		runState();
 
 		checkTriggers();
 		checkRunnableTriggers();
-
-		runState();
 	}
 
 	protected abstract void runState();
