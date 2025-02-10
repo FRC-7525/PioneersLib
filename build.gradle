@@ -1,7 +1,7 @@
 plugins {
     id "java"
     id 'maven-publish' // Enables publishing to a Maven repository
-    id "edu.wpi.first.GradleRIO" version "2025.1.1"
+    id "edu.wpi.first.GradleRIO" version "2025.2.1"
 }
 
 java {
