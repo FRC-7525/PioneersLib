@@ -1,7 +1,7 @@
 plugins {
     id "java"
     id 'maven-publish' // Enables publishing to a Maven repository
-    id "edu.wpi.first.GradleRIO" version "2025.1.1"
+    id "edu.wpi.first.GradleRIO" version "2025.2.1"
 }
 
 java {
@@ -17,7 +17,7 @@ publishing {
             
             groupId = 'com.github.FRC-7525'
             artifactId = 'pioneerslib'
-            version = '1.0.8'
+            version = '1.0.9'
             
             pom {
                 name = 'pioneersLib'
