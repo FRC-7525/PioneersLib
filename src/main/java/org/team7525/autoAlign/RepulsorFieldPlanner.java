@@ -28,7 +28,7 @@ public class RepulsorFieldPlanner {
 	 *
 	 * <p>Defaul: positive force, meaning it is repelling.
 	 */
-	abstract static class Obstacle {
+	public abstract static class Obstacle {
 		double strength = 1.0;
 		boolean positive = true;
 
@@ -76,7 +76,7 @@ public class RepulsorFieldPlanner {
 	 * <p> Default: Radius of 0.5 meters.
 	 * <p> Defaul: positive force, meaning it is repelling.
 	 */
-	static class PointObstacle extends Obstacle {
+	public static class PointObstacle extends Obstacle {
 		Translation2d loc;
 		double radius = 0.5;
 
@@ -92,7 +92,7 @@ public class RepulsorFieldPlanner {
 			this.loc = loc;
 		}
 
-		public PointObstacle createNewPointObstacle(Translation2d loc, double strength, boolean positive) {
+		public static PointObstacle createNewPointObstacle(Translation2d loc, double strength, boolean positive) {
 			return new PointObstacle(loc, strength, positive);
 		}
 
@@ -129,7 +129,7 @@ public class RepulsorFieldPlanner {
 	/**
 	 * Point Object but with a more guiding force around the object.
 	 */
-	static class GuidedObstacle extends Obstacle { // AKA scarecrow
+	public static class GuidedObstacle extends Obstacle { // AKA scarecrow
 		Translation2d loc;
 		double radius = 0.5;
 
@@ -139,7 +139,7 @@ public class RepulsorFieldPlanner {
 			this.radius = radius;
 		}
 
-		public GuidedObstacle createNewGuidedObstacle(Translation2d loc, double strength, boolean positive, double radius) {
+		public static GuidedObstacle createNewGuidedObstacle(Translation2d loc, double strength, boolean positive, double radius) {
 			return new GuidedObstacle(loc, strength, positive, radius);
 		}
 		
@@ -177,7 +177,7 @@ public class RepulsorFieldPlanner {
 	/**
 	 * Horizontal wall
 	 */
-	static class HorizontalObstacle extends Obstacle {
+	public static class HorizontalObstacle extends Obstacle {
 		double y;
 
 		public HorizontalObstacle(double y, double strength, boolean positive) {
@@ -197,7 +197,7 @@ public class RepulsorFieldPlanner {
 	/**
 	 * Vertical Wall
 	 */
-	static class VerticalObstacle extends Obstacle {
+	public static class VerticalObstacle extends Obstacle {
 		double x;
 
 		public VerticalObstacle(double x, double strength, boolean positive) {
