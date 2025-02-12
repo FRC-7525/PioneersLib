@@ -129,9 +129,10 @@ public class RepulsorFieldPlanner {
 		Translation2d loc;
 		double radius = 0.5;
 
-		public GuidedObstacle(Translation2d loc, double strength, boolean positive) {
+		public GuidedObstacle(Translation2d loc, double strength, boolean positive, double radius) {
 			super(strength, positive);
 			this.loc = loc;
+			this.radius = radius;
 		}
 		
 		/**

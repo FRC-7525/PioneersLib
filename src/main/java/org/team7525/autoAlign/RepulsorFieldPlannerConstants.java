@@ -20,8 +20,8 @@ public final class RepulsorFieldPlannerConstants {
 
     public static final class DefaultObstalces {
         public static final List<Obstacle> FIELD_OBSTACLES = List.of(
-		    new GuidedObstacle(new Translation2d(4.49, 4), 1, true),
-		    new GuidedObstacle(new Translation2d(13.08, 4), 1, true)
+		    new GuidedObstacle(new Translation2d(4.49, 4), 1, true, 0.5),
+		    new GuidedObstacle(new Translation2d(13.08, 4), 1, true, 0.5)
 	    );
 
 	    public static final List<Obstacle> WALLS = List.of(
