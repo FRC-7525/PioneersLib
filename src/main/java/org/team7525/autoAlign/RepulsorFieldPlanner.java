@@ -1,5 +1,7 @@
 package org.team7525.autoAlign;
 
+import static org.team7525.autoAlign.RepulsorFieldPlannerConstants.*;
+
 import choreo.trajectory.SwerveSample;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -27,7 +29,6 @@ public class RepulsorFieldPlanner {
 	 * <p>Defaul: positive force, meaning it is repelling.
 	 */
 	abstract static class Obstacle {
-
 		double strength = 1.0;
 		boolean positive = true;
 
@@ -76,7 +77,6 @@ public class RepulsorFieldPlanner {
 	 * <p> Defaul: positive force, meaning it is repelling.
 	 */
 	static class PointObstacle extends Obstacle {
-
 		Translation2d loc;
 		double radius = 0.5;
 
@@ -126,21 +126,21 @@ public class RepulsorFieldPlanner {
 	 * Point Object but with a more guiding force around the object.
 	 */
 	static class GuidedObstacle extends Obstacle { // AKA scarecrow
-
 		Translation2d loc;
 		double radius = 0.5;
 
+		public GuidedObstacle(Translation2d loc, double strength, boolean positive, double radius) {
+			super(strength, positive);
+			this.loc = loc;
+			this.radius = radius;
+		}
+		
 		/**
 		 * Calculates a force that avoids the obstacle and points to the direction of the target point.
 		 * @param position Position of the robot on the field
 		 * @param target The target position of the robot
 		 * @return Guiding force that pushes the robot towards the target.
 		 */
-		public GuidedObstacle(Translation2d loc, double strength, boolean positive) {
-			super(strength, positive);
-			this.loc = loc;
-		}
-
 		public Force getForceAtPosition(Translation2d position, Translation2d target) {
 			var targetToLoc = loc.minus(target);
 			var targetToLocAngle = targetToLoc.getAngle();
@@ -170,7 +170,6 @@ public class RepulsorFieldPlanner {
 	 * Horizontal wall
 	 */
 	static class HorizontalObstacle extends Obstacle {
-
 		double y;
 
 		public HorizontalObstacle(double y, double strength, boolean positive) {
@@ -187,7 +186,6 @@ public class RepulsorFieldPlanner {
 	 * Vertical Wall
 	 */
 	static class VerticalObstacle extends Obstacle {
-
 		double x;
 
 		public VerticalObstacle(double x, double strength, boolean positive) {
@@ -199,27 +197,13 @@ public class RepulsorFieldPlanner {
 			return new Force(distToForceMag(x - position.getX(), 1), 0);
 		}
 	}
-
-	public static final double GOAL_STRENGTH = 0.65;
-	static final double FIELD_LENGTH = 16.42;
-	static final double FIELD_WIDTH = 8.16;
-
-	public static final List<Obstacle> FIELD_OBSTACLES = List.of(
-		new GuidedObstacle(new Translation2d(4.49, 4), 1, true),
-		new GuidedObstacle(new Translation2d(13.08, 4), 1, true)
-	);
-
-	public static final List<Obstacle> WALLS = List.of(
-		new HorizontalObstacle(0.0, 0.5, true),
-		new HorizontalObstacle(FIELD_WIDTH, 0.5, false),
-		new VerticalObstacle(0.0, 0.5, true),
-		new VerticalObstacle(FIELD_LENGTH, 0.5, false),
-		new VerticalObstacle(7.55, 0.5, false),
-		new VerticalObstacle(10, 0.5, true)
-	);
-
-	private List<Obstacle> fixedObstacles = new ArrayList<>();
+	
 	private Optional<Translation2d> goalOpt = Optional.empty();
+
+	private List<Obstacle> allFieldObstacles = new ArrayList<>();
+	private List<Obstacle> fieldObstacles = new ArrayList<>();
+	private List<Obstacle> wallObstacles = new ArrayList<>();
+
 	private static final int ARROWS_X = 40;
 	private static final int ARROWS_Y = 20;
 	private static final int ARROWS_SIZE = (ARROWS_X + 1) * (ARROWS_Y + 1);
@@ -228,16 +212,19 @@ public class RepulsorFieldPlanner {
 	public Pose2d goal() {
 		return new Pose2d(goalOpt.orElse(Translation2d.kZero), Rotation2d.kZero);
 	}
-
 	/**
 	 * Creates a new repulsor field planner object
 	 */
-	public RepulsorFieldPlanner() {
-		fixedObstacles.addAll(FIELD_OBSTACLES);
-		fixedObstacles.addAll(WALLS);
+	public RepulsorFieldPlanner(List<Obstacle> fieldObstacles, List<Obstacle> walls) {
+		this.fieldObstacles = fieldObstacles.isEmpty() ? DefaultObstalces.FIELD_OBSTACLES : fieldObstacles;
+		this.wallObstacles = walls.isEmpty() ? DefaultObstalces.WALLS : walls;
+		allFieldObstacles.addAll(DefaultObstalces.FIELD_OBSTACLES);
+		allFieldObstacles.addAll(DefaultObstalces.WALLS);
+
 		for (int i = 0; i < ARROWS_SIZE; i++) {
 			arrows.add(new Pose2d());
 		}
+
 		{
 			var topic = NetworkTableInstance.getDefault().getBooleanTopic("useGoalInArrows");
 			topic.publish().set(useGoalInArrows);
@@ -337,7 +324,7 @@ public class RepulsorFieldPlanner {
 	 */
 	Force getWallForce(Translation2d curLocation, Translation2d target) {
 		var force = Force.kZero;
-		for (Obstacle obs : WALLS) {
+		for (Obstacle obs : wallObstacles) {
 			force = force.plus(obs.getForceAtPosition(curLocation, target));
 		}
 		return force;
@@ -351,7 +338,7 @@ public class RepulsorFieldPlanner {
 	 */
 	Force getObstacleForce(Translation2d curLocation, Translation2d target) {
 		var force = Force.kZero;
-		for (Obstacle obs : FIELD_OBSTACLES) {
+		for (Obstacle obs : allFieldObstacles) {
 			force = force.plus(obs.getForceAtPosition(curLocation, target));
 		}
 		return force;
@@ -520,4 +507,22 @@ public class RepulsorFieldPlanner {
 		}
 		return traj;
 	}
+
+
+	/**
+	 * Gets the arrows ArrayList. For logging.
+	 * @return Arrows pose2d ArrayList
+	 */
+	public ArrayList<Pose2d> getArrows() {
+		return arrows;
+	}
+
+	/**
+	 * Gets all field obstacles that are present in the repulsor field.
+	 * @return allFieldObstacles Obstacle List
+	 */
+	public List<Obstacle> getAllFieldObstacles() {
+		return allFieldObstacles;
+	}
+
 }
