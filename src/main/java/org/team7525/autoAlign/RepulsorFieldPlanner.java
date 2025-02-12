@@ -92,6 +92,10 @@ public class RepulsorFieldPlanner {
 			this.loc = loc;
 		}
 
+		public PointObstacle createNewPointObstacle(Translation2d loc, double strength, boolean positive) {
+			return new PointObstacle(loc, strength, positive);
+		}
+
 		/**
 		 * Calculates a force that avoids the obstacle and points to the direction of the target point.
 		 * @param position Position of the robot on the field
@@ -134,6 +138,10 @@ public class RepulsorFieldPlanner {
 			this.loc = loc;
 			this.radius = radius;
 		}
+
+		public GuidedObstacle createNewGuidedObstacle(Translation2d loc, double strength, boolean positive, double radius) {
+			return new GuidedObstacle(loc, strength, positive, radius);
+		}
 		
 		/**
 		 * Calculates a force that avoids the obstacle and points to the direction of the target point.
@@ -175,6 +183,10 @@ public class RepulsorFieldPlanner {
 		public HorizontalObstacle(double y, double strength, boolean positive) {
 			super(strength, positive);
 			this.y = y;
+		}
+
+		public static HorizontalObstacle createNewHorizontalObstacle(double y, double strength, boolean positive) {
+			return new HorizontalObstacle(y, strength, positive);
 		}
 
 		public Force getForceAtPosition(Translation2d position, Translation2d target) {

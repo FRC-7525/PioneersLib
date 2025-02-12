@@ -17,7 +17,7 @@ publishing {
             
             groupId = 'com.github.FRC-7525'
             artifactId = 'pioneerslib'
-            version = '1.0.12'
+            version = '1.0.13'
             
             pom {
                 name = 'pioneersLib'
