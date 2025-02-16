@@ -219,6 +219,8 @@ public class RepulsorFieldPlanner {
 	private static final int ARROWS_X = 40;
 	private static final int ARROWS_Y = 20;
 	private static final int ARROWS_SIZE = (ARROWS_X + 1) * (ARROWS_Y + 1);
+
+	private boolean simulateArrows;
 	private ArrayList<Pose2d> arrows = new ArrayList<>(ARROWS_SIZE);
 
 	public Pose2d goal() {
@@ -227,11 +229,12 @@ public class RepulsorFieldPlanner {
 	/**
 	 * Creates a new repulsor field planner object
 	 */
-	public RepulsorFieldPlanner(List<Obstacle> fieldObstacles, List<Obstacle> walls) {
+	public RepulsorFieldPlanner(List<Obstacle> fieldObstacles, List<Obstacle> walls, boolean simulateArrows) {
 		this.fieldObstacles = fieldObstacles.isEmpty() ? DefaultObstalces.FIELD_OBSTACLES : fieldObstacles;
 		this.wallObstacles = walls.isEmpty() ? DefaultObstalces.WALLS : walls;
 		allFieldObstacles.addAll(DefaultObstalces.FIELD_OBSTACLES);
 		allFieldObstacles.addAll(DefaultObstalces.WALLS);
+		this.simulateArrows = simulateArrows;
 
 		for (int i = 0; i < ARROWS_SIZE; i++) {
 			arrows.add(new Pose2d());
@@ -242,7 +245,7 @@ public class RepulsorFieldPlanner {
 			topic.publish().set(useGoalInArrows);
 			NetworkTableListener.createListener(topic, EnumSet.of(Kind.kValueAll), event -> {
 				useGoalInArrows = event.valueData.value.getBoolean();
-				updateArrows();
+				if (simulateArrows) updateArrows();
 			});
 			topic.subscribe(useGoalInArrows);
 		}
@@ -251,7 +254,7 @@ public class RepulsorFieldPlanner {
 			topic.publish().set(useObstaclesInArrows);
 			NetworkTableListener.createListener(topic, EnumSet.of(Kind.kValueAll), event -> {
 				useObstaclesInArrows = event.valueData.value.getBoolean();
-				updateArrows();
+				if (simulateArrows) updateArrows();
 			});
 			topic.subscribe(useObstaclesInArrows);
 		}
@@ -260,7 +263,7 @@ public class RepulsorFieldPlanner {
 			topic.publish().set(useWallsInArrows);
 			NetworkTableListener.createListener(topic, EnumSet.of(Kind.kValueAll), event -> {
 				useWallsInArrows = event.valueData.value.getBoolean();
-				updateArrows();
+				if (simulateArrows) updateArrows();
 			});
 			topic.subscribe(useWallsInArrows);
 		}
@@ -407,7 +410,7 @@ public class RepulsorFieldPlanner {
 	 */
 	public void setGoal(Translation2d goal) {
 		this.goalOpt = Optional.of(goal);
-		updateArrows();
+		if (simulateArrows) updateArrows();
 	}
 
 	/**
