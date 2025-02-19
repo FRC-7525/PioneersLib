@@ -6,24 +6,25 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.PrintCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
+import edu.wpi.first.wpilibj.XboxController;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 
 public abstract class Subsystem<StateType extends SubsystemStates> extends SubsystemBase {
 
-	private Map<StateType, ArrayList<Trigger<StateType>>> triggerMap = new HashMap<
-		StateType,
-		ArrayList<Trigger<StateType>>
-	>();
-
+	private Map<StateType, ArrayList<Trigger<StateType>>> triggerMap = new HashMap<>();
 	private List<RunnableTrigger> runnableTriggerList = new ArrayList<>();
 
 	private StateType state = null;
 	private Timer stateTimer = new Timer();
 	private String subsystemName;
+
+	public static Supplier<XboxController> controllerSupplier = () -> new XboxController(99);
+	private static boolean clearControllerCacheEachLoop = false;
 
 	public Subsystem(String subsystemName, StateType defaultState) {
 		if (defaultState == null) {
@@ -76,13 +77,16 @@ public abstract class Subsystem<StateType extends SubsystemStates> extends Subsy
 		for (var trigger : triggers) {
 			if (trigger.isTriggered()) {
 				setState(trigger.getResultState());
+				if (clearControllerCacheEachLoop) {
+					clearControllerCache(controllerSupplier.get());
+				}
 				return;
 			}
 		}
 	}
 
 	private void checkRunnableTriggers() {
-		if (triggerMap == null) return;
+		if (runnableTriggerList == null) return;
 		for (var trigger : runnableTriggerList) {
 			if (trigger.isTriggered()) {
 				trigger.run();
@@ -117,4 +121,27 @@ public abstract class Subsystem<StateType extends SubsystemStates> extends Subsy
 	public Command sysIdQuasistatic(Direction direction) {
 		return new PrintCommand("Please Override Me!");
 	}
+
+	public static void setControllerSupplier(Supplier<XboxController> supplier) {
+		controllerSupplier = supplier;
+	}
+
+	public static void setClearControllerCacheEachLoop(boolean clearCache) {
+		clearControllerCacheEachLoop = clearCache;
+	}
+
+	public static void clearControllerCache(XboxController controller) {
+		// Call the function on the controller to clear the cache
+		controller.getAButtonPressed();
+		controller.getBButtonPressed();
+		controller.getXButtonPressed();
+		controller.getYButtonPressed();
+		controller.getBackButtonPressed();
+		controller.getLeftBumperButtonPressed();
+		controller.getLeftStickButtonPressed();
+		controller.getRightBumperButtonPressed();
+		controller.getRightStickButtonPressed();
+		controller.getStartButtonPressed();
+	}
+	
 }

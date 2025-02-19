@@ -4,19 +4,19 @@ import java.util.function.BooleanSupplier;
 
 public class RunnableTrigger {
 
-	BooleanSupplier supplier;
-	Runnable runnable;
+    BooleanSupplier supplier;
+    Runnable runnable;
 
-	public RunnableTrigger(BooleanSupplier supplier, Runnable runnable) {
-		this.supplier = supplier;
-		this.runnable = runnable;
-	}
+    public RunnableTrigger(BooleanSupplier supplier, Runnable runnable) {
+        this.supplier = supplier;
+        this.runnable = runnable;
+    }
 
-	public boolean isTriggered() {
-		return supplier.getAsBoolean();
-	}
+    public boolean isTriggered() {
+        return supplier.getAsBoolean();
+    }
 
-	public void run() {
-		runnable.run();
-	}
+    public void run() {
+        runnable.run();
+    }
 }
