@@ -77,7 +77,9 @@ public abstract class Subsystem<StateType extends SubsystemStates> extends Subsy
 		for (var trigger : triggers) {
 			if (trigger.isTriggered()) {
 				setState(trigger.getResultState());
-				clearControllerCache(controllerSupplier.get());
+				if (clearControllerCacheEachLoop) {
+					clearControllerCache(controllerSupplier.get());
+				}
 				return;
 			}
 		}
@@ -88,7 +90,6 @@ public abstract class Subsystem<StateType extends SubsystemStates> extends Subsy
 		for (var trigger : runnableTriggerList) {
 			if (trigger.isTriggered()) {
 				trigger.run();
-				clearControllerCache(controllerSupplier.get());
 				return;
 			}
 		}
@@ -130,20 +131,17 @@ public abstract class Subsystem<StateType extends SubsystemStates> extends Subsy
 	}
 
 	public static void clearControllerCache(XboxController controller) {
-		if (clearControllerCacheEachLoop) {
-			// Call the function on the controller to clear the cache
-			controller.getAButtonPressed();
-			controller.getBButtonPressed();
-			controller.getXButtonPressed();
-			controller.getYButtonPressed();
-			controller.getBackButtonPressed();
-			controller.getLeftBumperButtonPressed();
-			controller.getLeftStickButtonPressed();
-			controller.getRightBumperButtonPressed();
-			controller.getRightStickButtonPressed();
-			controller.getStartButtonPressed();
-		} else {
-			throw new UnsupportedOperationException("Clear controller cache is not enabled.");
-		}
+		// Call the function on the controller to clear the cache
+		controller.getAButtonPressed();
+		controller.getBButtonPressed();
+		controller.getXButtonPressed();
+		controller.getYButtonPressed();
+		controller.getBackButtonPressed();
+		controller.getLeftBumperButtonPressed();
+		controller.getLeftStickButtonPressed();
+		controller.getRightBumperButtonPressed();
+		controller.getRightStickButtonPressed();
+		controller.getStartButtonPressed();
 	}
+	
 }
