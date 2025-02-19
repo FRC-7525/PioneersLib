@@ -15,7 +15,7 @@ public class Trigger<StateType extends SubsystemStates> {
     public boolean isTriggered() {
         boolean triggered = supplier.getAsBoolean();
         if (triggered) {
-            Subsystem.clearControllerCache();
+            Subsystem.clearControllerCache(Subsystem.controllerSupplier.get());
         }
         return triggered;
     }

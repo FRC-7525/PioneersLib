@@ -18,6 +18,5 @@ public class RunnableTrigger {
 
     public void run() {
         runnable.run();
-        Subsystem.clearControllerCache();
     }
 }
