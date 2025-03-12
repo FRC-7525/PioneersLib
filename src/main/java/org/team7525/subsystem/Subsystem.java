@@ -16,8 +16,6 @@ public abstract class Subsystem<StateType extends SubsystemStates> extends Subsy
 
 	private Map<StateType, ArrayList<Trigger<StateType>>> triggerMap = new HashMap<>();
 	private List<RunnableTrigger> runnableTriggerList = new ArrayList<>();
-	private Map<StateType, ArrayList<Runnable>> entranceRunnableMap = new HashMap<>();
-	private Map<StateType, ArrayList<Runnable>> exitRunnableMap = new HashMap<>();
 
 	private StateType state = null;
 	private Timer stateTimer = new Timer();
@@ -46,6 +44,18 @@ public abstract class Subsystem<StateType extends SubsystemStates> extends Subsy
 	}
 
 	protected abstract void runState();
+	
+	/**
+	 * Called AFTER the subsystem is set to a new state.
+	 * Override to implement functionality
+	 */
+	protected void stateInit() {};
+
+	/**
+	 * Called BEFORE the subsystem is set to a new state. 
+	 * Override to implement functionality
+	 */
+	protected void stateExit() {};
 
 	// SmartDashboard utils
 	protected void putSmartDashboard(String key, String value) {
@@ -66,21 +76,6 @@ public abstract class Subsystem<StateType extends SubsystemStates> extends Subsy
 
 	protected void addRunnableTrigger(Runnable runnable, BooleanSupplier check) {
 		runnableTriggerList.add(new RunnableTrigger(check, runnable));
-	}
-
-	protected void addEntranceRunnable(StateType entranceState, Runnable runnable) {
-		if (entranceRunnableMap.get(entranceState) == null) {
-			entranceRunnableMap.put(entranceState, new ArrayList<Runnable>());
-		}
-		entranceRunnableMap.get(entranceState).add(runnable);
-	}
-
-	protected void addExitRunnable(StateType exitState, Runnable runnable) {
-		if (exitRunnableMap.get(exitState) == null) {
-			exitRunnableMap.put(exitState, new ArrayList<Runnable>());
-		}
-
-		exitRunnableMap.get(exitState).add(runnable);
 	}
 
 	private void checkTriggers() {
@@ -112,10 +107,11 @@ public abstract class Subsystem<StateType extends SubsystemStates> extends Subsy
 	public void setState(StateType state) {
 		if (this.state != state) stateTimer.reset();
 
-		for (Runnable runnable : entranceRunnableMap.get(state)) runnable.run();
-		for (Runnable runnable : exitRunnableMap.get(this.state)) runnable.run();
+		stateExit();
 
 		this.state = state;
+
+		stateInit();
 	}
 
 	/**
