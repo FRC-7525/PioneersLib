@@ -57,15 +57,6 @@ public abstract class Subsystem<StateType extends SubsystemStates> extends Subsy
 	 */
 	protected void stateExit() {};
 
-	// SmartDashboard utils
-	protected void putSmartDashboard(String key, String value) {
-		SmartDashboard.putString("[" + subsystemName + "] " + key, value);
-	}
-
-	protected void putSmartDashboard(String key, double value) {
-		SmartDashboard.putNumber("[" + subsystemName + "] " + key, value);
-	}
-
 	// Triggers for state transitions
 	protected void addTrigger(StateType startType, StateType endType, BooleanSupplier check) {
 		if (triggerMap.get(startType) == null) {
