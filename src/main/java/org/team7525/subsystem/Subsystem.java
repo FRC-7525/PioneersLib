@@ -89,9 +89,6 @@ public abstract class Subsystem<StateType extends SubsystemStates> extends Subsy
 		for (var trigger : triggers) {
 			if (trigger.isTriggered()) {
 				setState(trigger.getResultState());
-
-				for (Runnable runnable : entranceRunnableMap.get(trigger.getResultState())) runnable.run();
-				for (Runnable runnable : exitRunnableMap.get(state)) runnable.run();
 				return;
 			}
 		}
@@ -114,6 +111,10 @@ public abstract class Subsystem<StateType extends SubsystemStates> extends Subsy
 
 	public void setState(StateType state) {
 		if (this.state != state) stateTimer.reset();
+
+		for (Runnable runnable : entranceRunnableMap.get(state)) runnable.run();
+		for (Runnable runnable : exitRunnableMap.get(this.state)) runnable.run();
+
 		this.state = state;
 	}
 
