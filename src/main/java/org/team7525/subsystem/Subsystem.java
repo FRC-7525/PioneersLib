@@ -105,12 +105,12 @@ public abstract class Subsystem<StateType extends SubsystemStates> extends Subsy
 	}
 
 	public void setState(StateType state) {
-		if (this.state != state) stateTimer.reset();
+		if (this.state == state) return;
+		
+		stateTimer.reset();
 
 		stateExit();
-
 		this.state = state;
-
 		stateInit();
 	}
 
