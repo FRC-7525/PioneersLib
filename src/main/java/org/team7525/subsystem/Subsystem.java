@@ -16,6 +16,8 @@ public abstract class Subsystem<StateType extends SubsystemStates> extends Subsy
 
 	private Map<StateType, ArrayList<Trigger<StateType>>> triggerMap = new HashMap<>();
 	private List<RunnableTrigger> runnableTriggerList = new ArrayList<>();
+	private Map<StateType, ArrayList<Runnable>> entranceRunnableMap = new HashMap<>();
+	private Map<StateType, ArrayList<Runnable>> exitRunnableMap = new HashMap<>();
 
 	private StateType state = null;
 	private Timer stateTimer = new Timer();
@@ -66,12 +68,30 @@ public abstract class Subsystem<StateType extends SubsystemStates> extends Subsy
 		runnableTriggerList.add(new RunnableTrigger(check, runnable));
 	}
 
+	protected void addEntranceRunnable(StateType entranceState, Runnable runnable) {
+		if (entranceRunnableMap.get(entranceState) == null) {
+			entranceRunnableMap.put(entranceState, new ArrayList<Runnable>());
+		}
+		entranceRunnableMap.get(entranceState).add(runnable);
+	}
+
+	protected void addExitRunnable(StateType exitState, Runnable runnable) {
+		if (exitRunnableMap.get(exitState) == null) {
+			exitRunnableMap.put(exitState, new ArrayList<Runnable>());
+		}
+
+		exitRunnableMap.get(exitState).add(runnable);
+	}
+
 	private void checkTriggers() {
 		List<Trigger<StateType>> triggers = triggerMap.get(state);
 		if (triggers == null) return;
 		for (var trigger : triggers) {
 			if (trigger.isTriggered()) {
 				setState(trigger.getResultState());
+
+				for (Runnable runnable : entranceRunnableMap.get(trigger.getResultState())) runnable.run();
+				for (Runnable runnable : exitRunnableMap.get(state)) runnable.run();
 				return;
 			}
 		}
