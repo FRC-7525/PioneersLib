@@ -44,15 +44,18 @@ public abstract class Subsystem<StateType extends SubsystemStates> extends Subsy
 	}
 
 	protected abstract void runState();
+	
+	/**
+	 * Called AFTER the subsystem is set to a new state.
+	 * Override to implement functionality
+	 */
+	protected void stateInit() {};
 
-	// SmartDashboard utils
-	protected void putSmartDashboard(String key, String value) {
-		SmartDashboard.putString("[" + subsystemName + "] " + key, value);
-	}
-
-	protected void putSmartDashboard(String key, double value) {
-		SmartDashboard.putNumber("[" + subsystemName + "] " + key, value);
-	}
+	/**
+	 * Called BEFORE the subsystem is set to a new state. 
+	 * Override to implement functionality
+	 */
+	protected void stateExit() {};
 
 	// Triggers for state transitions
 	protected void addTrigger(StateType startType, StateType endType, BooleanSupplier check) {
@@ -93,8 +96,13 @@ public abstract class Subsystem<StateType extends SubsystemStates> extends Subsy
 	}
 
 	public void setState(StateType state) {
-		if (this.state != state) stateTimer.reset();
+		if (this.state == state) return;
+		
+		stateTimer.reset();
+
+		stateExit();
 		this.state = state;
+		stateInit();
 	}
 
 	/**
