@@ -54,7 +54,7 @@ public class VisionUtil {
 			if (tagPose.isEmpty()) continue;
 
 			numTags++;
-			avgDist = tagPose
+			avgDist += tagPose
 					.get()
 					.toPose2d()
 					.minus(estimatedRobotPose.estimatedPose.toPose2d())
