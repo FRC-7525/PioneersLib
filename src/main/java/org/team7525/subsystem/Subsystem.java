@@ -57,12 +57,15 @@ public abstract class Subsystem<StateType extends SubsystemStates> extends Subsy
 	 */
 	protected void stateExit() {};
 
-	// Triggers for state transitions
-	protected void addTrigger(StateType startType, StateType endType, BooleanSupplier check) {
-		if (triggerMap.get(startType) == null) {
-			triggerMap.put(startType, new ArrayList<Trigger<StateType>>());
-		}
-		triggerMap.get(startType).add(new Trigger<StateType>(check, endType));
+	/**
+	 * Triggers for state transitions
+	 * @param startType The {@link StateType} for starting
+	 * @param endType The {@link StateType} for ending
+	 * @param condition A {@link BooleanSupplier} that triggers the state transition
+	 */
+	protected void addTrigger(StateType startType, StateType endType, BooleanSupplier condition) {
+		triggerMap.computeIfAbsent(startType, k -> new ArrayList<>())
+				.add(new Trigger<>(condition, endType));
 	}
 
 	protected void addRunnableTrigger(Runnable runnable, BooleanSupplier check) {
@@ -72,20 +75,18 @@ public abstract class Subsystem<StateType extends SubsystemStates> extends Subsy
 	private void checkTriggers() {
 		List<Trigger<StateType>> triggers = triggerMap.get(state);
 		if (triggers == null) return;
-		for (var trigger : triggers) {
+
+		for (var trigger: triggers) {
 			if (trigger.isTriggered()) {
 				setState(trigger.getResultState());
-				return;
 			}
 		}
 	}
 
 	private void checkRunnableTriggers() {
-		if (runnableTriggerList == null) return;
-		for (var trigger : runnableTriggerList) {
+		for (var trigger: runnableTriggerList) {
 			if (trigger.isTriggered()) {
 				trigger.run();
-				return;
 			}
 		}
 	}
@@ -97,11 +98,12 @@ public abstract class Subsystem<StateType extends SubsystemStates> extends Subsy
 
 	public void setState(StateType state) {
 		if (this.state == state) return;
-		
-		stateTimer.reset();
 
+		stateTimer.reset();
 		stateExit();
+
 		this.state = state;
+		triggerMap.remove(state);
 		stateInit();
 	}
 
@@ -120,5 +122,5 @@ public abstract class Subsystem<StateType extends SubsystemStates> extends Subsy
 
 	public Command sysIdQuasistatic(Direction direction) {
 		return new PrintCommand("Please Override Me!");
-	}	
+	}
 }
