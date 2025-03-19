@@ -6,6 +6,11 @@ import org.photonvision.EstimatedRobotPose;
 import org.joml.Vector3d;
 import org.photonvision.targeting.PhotonTrackedTarget;
 
+/**
+ * @deprecated
+ * @since 3-19-2025
+ */
+@Deprecated
 public class VisionUtil {
 	public enum CameraResolution {
 		HIGH_RESOLUTION,

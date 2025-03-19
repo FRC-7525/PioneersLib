@@ -103,7 +103,6 @@ public abstract class Subsystem<StateType extends SubsystemStates> extends Subsy
 		stateExit();
 
 		this.state = state;
-		triggerMap.remove(state);
 		stateInit();
 	}
 
