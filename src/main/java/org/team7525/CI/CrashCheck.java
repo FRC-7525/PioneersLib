@@ -1,4 +1,4 @@
-package org.team7525.ci;
+package org.team7525.CI;
 
 import edu.wpi.first.hal.DriverStationJNI;
 import edu.wpi.first.hal.HAL;
