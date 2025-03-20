@@ -27,6 +27,11 @@ public record SubsystemState(
 	Measure<AngularVelocityUnit> secondaryVelocity,
 	Measure<LinearAccelerationUnit> acceleration
 ) {
+	private static final Measure<DistanceUnit> ZERO_POSITION = Meters.of(0);
+	private static final Measure<LinearVelocityUnit> ZERO_VELOCITY = MetersPerSecond.of(0);
+	private static final Measure<AngularVelocityUnit> ZERO_ANGULAR_VELOCITY = RotationsPerSecond.of(0);
+	private static final Measure<LinearAccelerationUnit> ZERO_ACCELERATION = MetersPerSecondPerSecond.of(0);
+
 	/**
 	 * Primary constructor for all fields.
 	 * Validates the state to prevent invalid combinations.
@@ -39,7 +44,7 @@ public record SubsystemState(
 	 * Static factory method for defining a subsystem with pivot states
 	 */
 	public static SubsystemState fromPivotStates(String stateString, Rotation2d angularPosition) {
-		return new SubsystemState(stateString, null, angularPosition, null, null, null, null);
+		return new SubsystemState(stateString, ZERO_POSITION, angularPosition, ZERO_VELOCITY, ZERO_ANGULAR_VELOCITY, ZERO_ANGULAR_VELOCITY, ZERO_ACCELERATION);
 	}
 
 	/**
@@ -125,7 +130,7 @@ public record SubsystemState(
 	/**
 	 * Static factory method for defining a subsystem with just turret states (mech pls build this)
 	 */
-	public static SubsystemState fromTurettStates(
+	public static SubsystemState fromTurretStates(
 		String stateString,
 		Rotation2d angularPosition,
 		Measure<AngularVelocityUnit> angularVelocity
@@ -142,34 +147,29 @@ public record SubsystemState(
 	}
 
 	/**
-	 * No stupid states!!!
-	 */
-	private void validateState() {
-		if (position != null && position.in(Meters) > 10) {
-			throw new IllegalArgumentException(
-				"U prob have conversion errors or L code (position > 10m)"
-			);
+	 * Validates state to ensure it's not like really dumb.
+     */
+	private void validateState() throws IllegalStateException {
+		double pos = position != null ? position.in(Meters) : 0;
+		double vel = velocity != null ? velocity.in(MetersPerSecond) : 0;
+		double angVel = angularVelocity != null ? angularVelocity.in(RotationsPerSecond) : 0;
+		double secVel = secondaryVelocity != null ? secondaryVelocity.in(RPM) / 60 : 0;
+		double accel = acceleration != null ? acceleration.in(MetersPerSecondPerSecond) : 0;
+
+		if (pos > 10) {
+			throw new IllegalStateException("Position must be less than or equal to 10. There is likely a unit conversion error.");
 		}
 
-		if (velocity != null && velocity.in(MetersPerSecond) > 40) {
-			throw new IllegalArgumentException(
-				"U prob have conversion errors or L code (velocity > 40m/s)"
-			);
+		if (vel > 40) {
+			throw new IllegalStateException("Velocity must be less than 40m/sec. There is likely a unit conversion issue.");
 		}
 
-		if (
-			(angularVelocity != null && angularVelocity.in(RotationsPerSecond) > 200) ||
-			(secondaryVelocity != null && secondaryVelocity.in(RPM) / 60 > 200)
-		) {
-			throw new IllegalArgumentException(
-				"What motor is going 200 RPS or why is gearing so low? fix ur robot or code"
-			);
+		if (angVel > 200 || secVel > 200) {
+			throw new IllegalStateException("Improbable that a motor is going 200RPS - Either the gearing is too low or the code is bad.");
 		}
 
-		if (acceleration != null && acceleration.in(MetersPerSecondPerSecond) > 30) {
-			throw new IllegalArgumentException(
-				"U prob have conversion errors or L code (acceleration > 30 m/s^2)"
-			);
+		if (accel > 30) {
+			throw new IllegalStateException("Acceleration cannot be greater than 30 m/s^2");
 		}
 	}
 }

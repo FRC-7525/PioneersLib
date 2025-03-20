@@ -1,0 +1,7 @@
+[versions]
+fasterxml = "2.18.3"
+joml = "1.10.8"
+
+[libraries]
+fasterxml = { module = "com.fasterxml.jackson.core:jackson-core", version.ref = "fasterxml" }
+joml = { module = "org.joml:joml", version.ref = "joml" }

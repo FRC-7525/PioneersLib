@@ -3,7 +3,6 @@ package org.team7525.subsystem;
 import java.util.function.BooleanSupplier;
 
 public class Trigger<StateType extends SubsystemStates> {
-
     BooleanSupplier supplier;
     StateType state;
 
@@ -13,8 +12,7 @@ public class Trigger<StateType extends SubsystemStates> {
     }
 
     public boolean isTriggered() {
-        boolean triggered = supplier.getAsBoolean();
-        return triggered;
+        return supplier.getAsBoolean();
     }
 
     public StateType getResultState() {

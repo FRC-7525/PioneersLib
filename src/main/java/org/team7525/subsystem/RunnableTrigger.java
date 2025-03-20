@@ -3,7 +3,6 @@ package org.team7525.subsystem;
 import java.util.function.BooleanSupplier;
 
 public class RunnableTrigger {
-
     BooleanSupplier supplier;
     Runnable runnable;
 
