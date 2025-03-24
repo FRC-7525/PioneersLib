@@ -153,7 +153,7 @@ public class RepulsorFieldPlanner {
 			var targetToLoc = loc.minus(target);
 			var targetToLocAngle = targetToLoc.getAngle();
 			// 1 meter away from loc, opposite target.
-			var sidewaysCircle = new Translation2d(1, targetToLoc.getAngle()).plus(loc);
+			var sidewaysCircle = new Translation2d(radius, targetToLoc.getAngle()).plus(loc);
 			var dist = loc.getDistance(position);
 			var sidewaysDist = sidewaysCircle.getDistance(position);
 			var sidewaysMag = distToForceMag(sidewaysCircle.getDistance(position));
