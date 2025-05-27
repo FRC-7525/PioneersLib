@@ -1,6 +1,5 @@
 package org.team7525.autoAlign;
 
-import java.lang.reflect.Field;
 import java.util.List;
 import static org.team7525.autoAlign.RepulsorFieldPlanner.Obstacle;
 import static org.team7525.autoAlign.RepulsorFieldPlanner.PointObstacle;
@@ -17,11 +16,11 @@ import edu.wpi.first.math.geometry.Translation2d;
  * EVERYTHING IS IN METERS AND METRIC UNITS
  */
 public final class RepulsorFieldPlannerConstants {
-    public static final double GOAL_STRENGTH = 0.65;
-	public static int ARROWS_ON_X_AXIS = 40;
-	public static int ARROWS_ON_Y_AXIS = 20;
+    public static final double GOAL_STRENGTH = 0.65; //changable if you want pull force towards goal to be stornger/weaker
 	public static final double FIELD_LENGTH = 16.42;
 	public static final double FIELD_WIDTH = 8.16;	
+	public static final int ARROWS_ON_X_AXIS = 40; // change if you want to modiify the number of arrows on the x-axis
+	public static final int ARROWS_ON_Y_AXIS = 20; // likewise for y axis. more arrows = better viz but slower performance
 
     public static final class DefaultObstalces {
         public static final List<Obstacle> FIELD_OBSTACLES = List.of(

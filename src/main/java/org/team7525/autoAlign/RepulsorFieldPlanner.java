@@ -1,18 +1,13 @@
 package org.team7525.autoAlign;
 
 import static edu.wpi.first.units.Units.Meters;
-import static org.team7525.autoAlign.RepulsorFieldPlannerConstants.ARROWS_ON_X_AXIS;
-import static org.team7525.autoAlign.RepulsorFieldPlannerConstants.ARROWS_ON_Y_AXIS;
-import static org.team7525.autoAlign.RepulsorFieldPlannerConstants.FIELD_LENGTH;
-import static org.team7525.autoAlign.RepulsorFieldPlannerConstants.FIELD_WIDTH;
-import static org.team7525.autoAlign.RepulsorFieldPlannerConstants.GOAL_STRENGTH;
+import static org.team7525.autoAlign.RepulsorFieldPlannerConstants.*;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 
-import org.team7525.autoAlign.Force;
 import org.team7525.autoAlign.RepulsorFieldPlannerConstants.DefaultObstalces;
 
 import choreo.trajectory.SwerveSample;
