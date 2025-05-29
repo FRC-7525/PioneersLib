@@ -1,235 +1,269 @@
 package org.team7525.autoAlign;
 
+import static edu.wpi.first.units.Units.Meters;
 import static org.team7525.autoAlign.RepulsorFieldPlannerConstants.*;
-
-import choreo.trajectory.SwerveSample;
-import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.math.kinematics.ChassisSpeeds;
-import edu.wpi.first.networktables.NetworkTableEvent.Kind;
-import edu.wpi.first.networktables.NetworkTableInstance;
-import edu.wpi.first.networktables.NetworkTableListener;
-import edu.wpi.first.wpilibj.DataLogManager;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-// stolen from 6995 in LPS
 
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 
+import org.team7525.autoAlign.RepulsorFieldPlannerConstants.DefaultObstalces;
+
+import choreo.trajectory.SwerveSample;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.networktables.NetworkTableListener;
+import edu.wpi.first.units.measure.Distance;
+import edu.wpi.first.wpilibj.DataLogManager;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.networktables.NetworkTableEvent.Kind;
+
+// Stolen from Team 6995 in LPS
+
 public class RepulsorFieldPlanner {
+    /**
+     * Basis of all other obstacles
+     */
+    public abstract static class Obstacle {
+        double strength;
+        boolean shouldRepel;
 
-	/**
-	 * Generic obstacle object.
-	 *
-	 * <p>Default: strength = 1.0;
-	 *
-	 * <p>Defaul: positive force, meaning it is repelling.
-	 */
-	public abstract static class Obstacle {
-		double strength = 1.0;
-		boolean positive = true;
-
-		/**
-		 * Creates a generic obstacle object
-		 *
-		 * @param strength How strong the object should pull/repel
-		 * @param positive Is the positive pulling or repeling. Positive: Repel
-		 */
-		public Obstacle(double strength, boolean positive) {
-			this.strength = strength;
-			this.positive = positive;
-		}
-
-		public abstract Force getForceAtPosition(Translation2d position, Translation2d target);
+        /**
+         * 
+         * @param currentPosition Current robot position on the field
+         * @param goalPosition Robot target position
+         * @return Force acting on the robot from the current obstacle.
+         */
+        public abstract Force getForceAtPosition(Translation2d currentPosition, Translation2d goalPosition);
 
 		/**
-		 * Gets the force that an object would apply on the robot at a certain distance.
-		 * @param dist the distance between the robot and the object in meters
-		 * @return The force applied by that object on the robot.
+		 * 
+		 * @param strength Strength repulsion force of the obstacle
+		 * @param shouldRepel Determines whether obstacle should repel or attract.
 		 */
-		protected double distToForceMag(double dist) {
-			var forceMag = strength / (0.00001 + Math.abs(dist * dist));
-			forceMag *= positive ? 1 : -1;
+        public Obstacle(double strength, boolean shouldRepel) {
+            this.strength = strength;
+            this.shouldRepel = shouldRepel;
+        }
+
+        /**
+         * Calculates the force magnitude based on the distance from the obstacle.
+		 * 
+         * @param distance Distance between the robot and the obstacle in meters.
+         * @return magnitude of the force acting on the robot from the obstacle.
+         */
+        protected double calculateForceMagnitude(double distance) {
+            double forceMag = strength / (0.00001 + Math.abs(distance * distance));
+			forceMag *= shouldRepel ? 1 : -1;
 			return forceMag;
-		}
+        }
 
-		/**
-		 * Gets the force that an object would apply on the robot at a certain distance.
-		 * @param dist the distance between the robot and the object in meters
-		 * @param falloff A value used to influence the falloff of a force on an object. falloff > 1 diminish. falloff < 1 amplify.
-		 * @return The force applied by that object on the robot.
-		 */
-		protected double distToForceMag(double dist, double falloff) {
-			var original = strength / (0.00001 + Math.abs(dist * dist));
+        /**
+         * 
+         * @param distance Distance between the robot and the obstacle in meters.
+         * @param falloff Falloff distance in meter. Once past the falloff distance, the force will be 0.
+         * @return magnitude of the force acting on the robot from the obstacle.
+         */
+        protected double calculateForceMagnitude(double distance, double falloff) {
+			var original = strength / (0.00001 + Math.abs(distance * distance));
 			var falloffMag = strength / (0.00001 + Math.abs(falloff * falloff));
-			return Math.max(original - falloffMag, 0) * (positive ? 1 : -1);
+			return Math.max(original - falloffMag, 0) * (shouldRepel ? 1 : -1);
 		}
-	}
+    }
 
-	/**
-	 * Obstacle object with an associated position on the field.
-	 *
-	 * <p> Default: strength = 1.0.
-	 * <p> Default: Radius of 0.5 meters.
-	 * <p> Defaul: positive force, meaning it is repelling.
-	 */
-	public static class PointObstacle extends Obstacle {
-		Translation2d loc;
-		double radius = 0.5;
+    /**
+     * Obstacle with an associated position.
+	 * <p> Should be used for objects that should be avoided
+     */
+    public static class PointObstacle extends Obstacle {
+        Translation2d obstacleLocation;
+        double obstacleRadius;
 
 		/**
-		 * Creates an obstacle with an associated position
-		 *
-		 * @param loc Location of the object on the field
-		 * @param strength How strong the object should pull/repel
-		 * @param positive Is the positive pulling or repeling. Positive: Repel
+		 * Creates a point obstacle object
+		 * @param strength Strength repulsion force of the obstacle
+		 * @param shouldRepel Determines whether obstacle should repel or attract.
+		 * @param obstacleRadius Size of the obstacle
+		 * @param obstacleLocation Position of the obstacle
 		 */
-		public PointObstacle(Translation2d loc, double strength, boolean positive) {
-			super(strength, positive);
-			this.loc = loc;
-		}
-
-		public static PointObstacle createNewPointObstacle(Translation2d loc, double strength, boolean positive) {
-			return new PointObstacle(loc, strength, positive);
-		}
+        public PointObstacle(double strength, boolean shouldRepel, Distance obstacleRadius, Translation2d obstacleLocation) {
+            super(strength, shouldRepel);
+            this.obstacleLocation = obstacleLocation;
+            this.obstacleRadius = obstacleRadius.in(Meters);
+        }
 
 		/**
-		 * Calculates a force that avoids the obstacle and points to the direction of the target point.
-		 * @param position Position of the robot on the field
-		 * @param target The target position of the robot
-		 * @return Guiding force that pushes the robot towards the target.
+		 * @param currentPosition Current robot position on the field
+		 * @param targetPosition The target position of the robot
 		 */
-		public Force getForceAtPosition(Translation2d position, Translation2d target) {
-			var dist = loc.getDistance(position);
-			if (dist > 4) {
+		public Force getForceAtPosition(Translation2d currentPosition, Translation2d targetPosition) {
+			double distance = obstacleLocation.getDistance(currentPosition);
+			if (distance > 4) { // if further than 4 meters, obstacle does not apply force
 				return new Force();
 			}
 
-			// gets repulsion force. points from loc directly towards position
-			var outwardsMag = distToForceMag(loc.getDistance(position) - radius);
-			var initial = new Force(outwardsMag, position.minus(loc).getAngle());
+			// First calculates outward force
+			double outwardForceMag = calculateForceMagnitude(obstacleLocation.getDistance(currentPosition) - obstacleRadius);
+			Force initalForce = new Force(outwardForceMag, currentPosition.minus(obstacleLocation).getAngle());
 
-			// angle between target and force towards position from loc
-			var theta = target.minus(position).getAngle().minus(position.minus(loc).getAngle());
-			// makes sure that the force is still in the correct direction
-			double mag = (outwardsMag * Math.signum(Math.sin(theta.getRadians() / 2))) / 2;
+			// Determines whether to go ccw or cw around the object
+			Rotation2d theta = targetPosition.minus(currentPosition).getAngle().minus(currentPosition.minus(obstacleLocation).getAngle());
+			double mag = (outwardForceMag * Math.signum(Math.sin(theta.getRadians() / 2))) / 2; // fancy trick to determine whether to go ccw or cw around the object.
 
-			// Rotates the force by 90 degrees so that the robot can go around the obstacle
-			return initial
-				.rotateBy(Rotation2d.kCCW_90deg)
-				.div(initial.getNorm())
+			return initalForce
+				.rotateBy(Rotation2d.kCCW_90deg) // rotates so the object does not go directly backward/forward into the reef
+				.div(initalForce.getNorm())
 				.times(mag)
-				.plus(initial);
+				.plus(initalForce);
 		}
-	}
+    }
 
 	/**
-	 * Point Object but with a more guiding force around the object.
+	 * Obstacle that provides a stronger guiding force around a object.
+	 * This should be used for large objects like the reef in 2025
 	 */
-	public static class GuidedObstacle extends Obstacle { // AKA scarecrow
-		Translation2d loc;
-		double radius = 0.5;
+    public static class GuidedObstacle extends Obstacle {
+        Translation2d obstacleLocation;
+        double obstacleRadius;
 
-		public GuidedObstacle(Translation2d loc, double strength, boolean positive, double radius) {
-			super(strength, positive);
-			this.loc = loc;
-			this.radius = radius;
-		}
+        public GuidedObstacle(double strength, boolean shouldRepel, Distance obstacleRadius, Translation2d obstacleLocation) {
+            super(strength, shouldRepel);
+            this.obstacleLocation = obstacleLocation;
+            this.obstacleRadius = obstacleRadius.in(Meters);
+        }
 
-		public static GuidedObstacle createNewGuidedObstacle(Translation2d loc, double strength, boolean positive, double radius) {
-			return new GuidedObstacle(loc, strength, positive, radius);
-		}
-		
-		/**
-		 * Calculates a force that avoids the obstacle and points to the direction of the target point.
-		 * @param position Position of the robot on the field
-		 * @param target The target position of the robot
+        /**
+         * 
+		 * <p> Essentially the same force calculation as PointObstacle, but with an extra "setpoint" 
+         * @param currentPosition Position of the robot on the field
+		 * @param targetPosition The target position of the robot
 		 * @return Guiding force that pushes the robot towards the target.
+         */
+        public Force getForceAtPosition(Translation2d currentPosition, Translation2d targetPosition) {
+
+			//normal repulsion force calculation
+            double initialMag = calculateForceMagnitude(obstacleLocation.getDistance(currentPosition));
+			Force initialForce = new Force(initialMag, currentPosition.minus(obstacleLocation).getAngle());
+
+			// Additionally "setpoint" force calculation to help guide hte object further.
+			Translation2d targetToObstacle = obstacleLocation.minus(targetPosition);
+			Rotation2d targetToObstacleAngle = targetToObstacle.getAngle();
+            Translation2d sidewaysCircle = new Translation2d(obstacleRadius, targetToObstacle.getAngle()).plus(obstacleLocation);
+            double sidewaysMag = calculateForceMagnitude(sidewaysCircle.getDistance(currentPosition)); 
+
+			// Determines whether the robot should go ccw or cw around the obstacle
+            Rotation2d sidewaysTheta = targetPosition
+                .minus(currentPosition)
+                .getAngle()
+                .minus(currentPosition.minus(sidewaysCircle).getAngle());
+            sidewaysMag *= Math.signum(Math.sin(sidewaysTheta.getRadians()));
+			// Adds the inital force witht he additional guiding force together
+            Rotation2d sidewaysAngle = targetToObstacleAngle.rotateBy(Rotation2d.kCCW_90deg);
+
+            return new Force(sidewaysMag, sidewaysAngle).plus(initialForce);
+        }
+    }
+
+    /**
+     * Horizontal Wall
+	 * 
+     */
+    public static class HorizontalObstacle extends Obstacle {
+		double y;
+        double falloff;
+
+		/**
+		 * Creates a horizontal obstacle object
+		 * @param strength Strength repulsion force of the obstacle
+		 * @param shouldRepel Determines whether obstacle should repel or attract.
+		 * @param yPosition Y position of the obstacle
+		 * @param falloffRadius Falloff radius of the obstacle
+		 * <p> The falloff radius is the distance from the obstacle where the force will be 0.
+		 */
+		public HorizontalObstacle(double strength, boolean shouldRepel, double yPosition, Distance falloffRadius) {
+			super(strength, shouldRepel);
+			this.y = yPosition;
+            this.falloff = falloffRadius.in(Meters);
+		}
+
+		/**
+		 * <p> Standard force calculation, but only considers the Y component
+		 * 
+		 * @param position Current position of the robot on the field
+		 * @param target Target position of the robot
+		 * @return Returns force acting on the robot. There is not a X component of the force.
 		 */
 		public Force getForceAtPosition(Translation2d position, Translation2d target) {
-			var targetToLoc = loc.minus(target);
-			var targetToLocAngle = targetToLoc.getAngle();
-			// 1 meter away from loc, opposite target.
-			var sidewaysCircle = new Translation2d(1, targetToLoc.getAngle()).plus(loc);
-			var dist = loc.getDistance(position);
-			var sidewaysDist = sidewaysCircle.getDistance(position);
-			var sidewaysMag = distToForceMag(sidewaysCircle.getDistance(position));
-
-			// finds outward force. points from loc to position
-			var outwardsMag = distToForceMag(loc.getDistance(position));
-			var initial = new Force(outwardsMag, position.minus(loc).getAngle());
-
-			// flip the sidewaysMag based on which side of the goal-sideways circle the robot is on
-			var sidewaysTheta = target
-				.minus(position)
-				.getAngle()
-				.minus(position.minus(sidewaysCircle).getAngle());
-
-			double sideways = sidewaysMag * Math.signum(Math.sin(sidewaysTheta.getRadians()));
-			var sidewaysAngle = targetToLocAngle.rotateBy(Rotation2d.kCCW_90deg);
-			return new Force(sideways, sidewaysAngle).plus(initial);
-		}
-	}
-
-	/**
-	 * Horizontal wall
-	 */
-	public static class HorizontalObstacle extends Obstacle {
-		double y;
-
-		public HorizontalObstacle(double y, double strength, boolean positive) {
-			super(strength, positive);
-			this.y = y;
-		}
-
-		public static HorizontalObstacle createNewHorizontalObstacle(double y, double strength, boolean positive) {
-			return new HorizontalObstacle(y, strength, positive);
-		}
-
-		public Force getForceAtPosition(Translation2d position, Translation2d target) {
-			return new Force(0, distToForceMag(y - position.getY(), 1));
+			return new Force(0, calculateForceMagnitude(y - position.getY(), falloff));
 		}
 	}
 
 	/**
 	 * Vertical Wall
 	 */
-	public static class VerticalObstacle extends Obstacle {
+    public static class VerticalObstacle extends Obstacle {
 		double x;
+        double falloff;
 
-		public VerticalObstacle(double x, double strength, boolean positive) {
-			super(strength, positive);
-			this.x = x;
+		/**
+		 * Creates a vertical obstacle object
+		 * @param strength Strength repulsion force of the obstacle
+		 * @param shouldRepel Determines whether obstacle should repel or attract.
+		 * @param xPosition X position of the obstacle
+		 * @param falloffRadius Falloff radius of the obstacle
+		 * <p> The falloff radius is the distance from the obstacle where the force will be 0.
+		 */
+		public VerticalObstacle(double strength, boolean shouldRepel, double xPosition, Distance falloffRadius) {
+			super(strength, shouldRepel);
+			this.x = xPosition;
+            this.falloff = falloffRadius.in(Meters);
 		}
 
+		/**
+		 * <p> Standard force calculation, but only considers the X component
+		 * 
+		 * @param position Current position of the robot on the field
+		 * @param target Target position of the robot
+		 * @return Returns force acting on the robot. There is not a Y component of the force.
+		 */
 		public Force getForceAtPosition(Translation2d position, Translation2d target) {
-			return new Force(distToForceMag(x - position.getX(), 1), 0);
+			return new Force(calculateForceMagnitude(x - position.getX(), falloff), 0);
 		}
 	}
-	
-	private Optional<Translation2d> goalOpt = Optional.empty();
+
+    private Optional<Translation2d> goalOpt = Optional.empty();
 
 	private List<Obstacle> allFieldObstacles = new ArrayList<>();
 	private List<Obstacle> fieldObstacles = new ArrayList<>();
 	private List<Obstacle> wallObstacles = new ArrayList<>();
 
-	private static final int ARROWS_X = 40;
-	private static final int ARROWS_Y = 20;
+	private static final int ARROWS_X = ARROWS_ON_X_AXIS;
+	private static final int ARROWS_Y = ARROWS_ON_Y_AXIS;
 	private static final int ARROWS_SIZE = (ARROWS_X + 1) * (ARROWS_Y + 1);
 
 	private boolean simulateArrows;
 	private ArrayList<Pose2d> arrows = new ArrayList<>(ARROWS_SIZE);
 
-	public Pose2d goal() {
-		return new Pose2d(goalOpt.orElse(Translation2d.kZero), Rotation2d.kZero);
-	}
+    private boolean useGoalInArrows = false;
+	private boolean useObstaclesInArrows = true;
+	private boolean useWallsInArrows = true;
+    private Pose2d arrowBackstage = new Pose2d(-10, -10, Rotation2d.kZero);
+
 	/**
-	 * Creates a new repulsor field planner object
-	 */
-	public RepulsorFieldPlanner(List<Obstacle> fieldObstacles, List<Obstacle> walls, boolean simulateArrows) {
+	 * Creates a RepulsorFieldPlanner object with the given obstacles and walls.
+	 * <p> If the obstacles or walls are empty, it will use the default obstacles and walls.
+	 * @param fieldObstacles List of obstacles in the field. If empty, will use default obstacles.
+	 * <p> The default obstacles are defined in {@link DefaultObstalces#FIELD_OBSTACLES}.
+	 * @param walls. List of walls in the field. If empty, will use default walls.
+	 * <p> The default walls are defined in {@link DefaultObstalces#WALLS}.
+	 * @param simulateArrows Determines whether arrows should be simulated or not.
+	 * <p> ARROWS SHOULD ONLY BE SIMULATED IN SIMULATION MODE
+	*/
+public RepulsorFieldPlanner(List<Obstacle> fieldObstacles, List<Obstacle> walls, boolean simulateArrows) { //TODO change this constructor since it's goofy
 		this.fieldObstacles = fieldObstacles.isEmpty() ? DefaultObstalces.FIELD_OBSTACLES : fieldObstacles;
 		this.wallObstacles = walls.isEmpty() ? DefaultObstalces.WALLS : walls;
 		allFieldObstacles.addAll(DefaultObstalces.FIELD_OBSTACLES);
@@ -240,6 +274,7 @@ public class RepulsorFieldPlanner {
 			arrows.add(new Pose2d());
 		}
 
+		// Creates a bunch of configurables in NT for repulsor. Most of it is just visualization
 		{
 			var topic = NetworkTableInstance.getDefault().getBooleanTopic("useGoalInArrows");
 			topic.publish().set(useGoalInArrows);
@@ -249,6 +284,7 @@ public class RepulsorFieldPlanner {
 			});
 			topic.subscribe(useGoalInArrows);
 		}
+
 		{
 			var topic = NetworkTableInstance.getDefault().getBooleanTopic("useObstaclesInArrows");
 			topic.publish().set(useObstaclesInArrows);
@@ -258,6 +294,7 @@ public class RepulsorFieldPlanner {
 			});
 			topic.subscribe(useObstaclesInArrows);
 		}
+
 		{
 			var topic = NetworkTableInstance.getDefault().getBooleanTopic("useWallsInArrows");
 			topic.publish().set(useWallsInArrows);
@@ -267,6 +304,7 @@ public class RepulsorFieldPlanner {
 			});
 			topic.subscribe(useWallsInArrows);
 		}
+
 		NetworkTableInstance.getDefault()
 			.startEntryDataLog(
 				DataLogManager.getLog(),
@@ -275,18 +313,12 @@ public class RepulsorFieldPlanner {
 			);
 	}
 
-	private boolean useGoalInArrows = false;
-	private boolean useObstaclesInArrows = true;
-	private boolean useWallsInArrows = true;
-
-	private Pose2d arrowBackstage = new Pose2d(-10, -10, Rotation2d.kZero);
-
-	// A grid of arrows drawn in AScope
-
 	/**
-	 * updates the arrows drawn in advantage scope
+	 * Updates arrow display
 	 */
-	void updateArrows() {
+    void updateArrows() {
+		if (!simulateArrows) return;
+
 		for (int x = 0; x <= ARROWS_X; x++) {
 			for (int y = 0; y <= ARROWS_Y; y++) {
 				var translation = new Translation2d(
@@ -315,12 +347,21 @@ public class RepulsorFieldPlanner {
 	}
 
 	/**
-	 * Calculates how much the goal is pulling the robot
-	 * @param curLocation current robot location
-	 * @param goal goal location
-	 * @return returns the pull force applied by the goal
+	 * Obtains the goal pose of the robot.
+	 * <p> If the goal is not set, it will return a zero pose.
+	 * @return Current goal pose or zero pose if goal is not set.
 	 */
-	Force getGoalForce(Translation2d curLocation, Translation2d goal) {
+    public Pose2d goal() {
+		return new Pose2d(goalOpt.orElse(Translation2d.kZero), Rotation2d.kZero);
+	}
+
+	/**
+	 * Calculates attraction force to goal
+	 * @param curLocation
+	 * @param 
+	 * @return
+	 */
+    Force getGoalForce(Translation2d curLocation, Translation2d goal) {
 		var displacement = goal.minus(curLocation);
 		if (displacement.getNorm() == 0) {
 			return new Force();
@@ -332,12 +373,12 @@ public class RepulsorFieldPlanner {
 	}
 
 	/**
-	 * Calculates the repel force applied by the walls
-	 * @param curLocation current robot location
-	 * @param target path endpoint
-	 * @return returns the repel force applied by the walls
+	 * Calculates the force acting on the robot from the walls.
+	 * @param curLocation Current location of the robot on the field
+	 * @param target Target position of the robot
+	 * @return force acting on the robot from the walls.
 	 */
-	Force getWallForce(Translation2d curLocation, Translation2d target) {
+    Force getWallForce(Translation2d curLocation, Translation2d target) {
 		var force = Force.kZero;
 		for (Obstacle obs : wallObstacles) {
 			force = force.plus(obs.getForceAtPosition(curLocation, target));
@@ -346,12 +387,12 @@ public class RepulsorFieldPlanner {
 	}
 
 	/**
-	 * Calculates the repel force applied by field obstacles
-	 * @param curLocation current robot location
-	 * @param target path endpoint
-	 * @return returns the repel force applied by field obstacles
+	 * Calculates the force acting on the robot from all obstacles.
+	 * @param curLocation Current robot position on the field
+	 * @param target Target position of the robot
+	 * @return Net force acting on the robot from all obstacles.
 	 */
-	Force getObstacleForce(Translation2d curLocation, Translation2d target) {
+    Force getObstacleForce(Translation2d curLocation, Translation2d target) {
 		var force = Force.kZero;
 		for (Obstacle obs : allFieldObstacles) {
 			force = force.plus(obs.getForceAtPosition(curLocation, target));
@@ -360,12 +401,12 @@ public class RepulsorFieldPlanner {
 	}
 
 	/**
-	 * Calculates total force applied onto the robot from all sources.
-	 * @param curLocation current robot location
-	 * @param target path endpoint
-	 * @return returns total force applied from all sources.
+	 * Calculates the force acting on the robot from all obstacles.
+	 * @param curLocation Current robot position on the field
+	 * @param target Target position of the robot
+	 * @return Net force acting on the robot from all obstacles.
 	 */
-	Force getForce(Translation2d curLocation, Translation2d target) {
+    Force getForce(Translation2d curLocation, Translation2d target) {
 		var goalForce = getGoalForce(curLocation, target)
 			.plus(getObstacleForce(curLocation, target))
 			.plus(getWallForce(curLocation, target));
@@ -373,15 +414,9 @@ public class RepulsorFieldPlanner {
 	}
 
 	/**
-	 *
-	 * @param trans robot translation 2d
-	 * @param rot robot rotation
-	 * @param vx robot x velocity
-	 * @param vy robot y velocity
-	 * @param omega robot angular velocity
-	 * @return SwerveSample object
+	 * Generates a SwerveSample object based on the given parameters.
 	 */
-	private SwerveSample sample(
+    private SwerveSample sample(
 		Translation2d trans,
 		Rotation2d rot,
 		double vx,
@@ -405,41 +440,48 @@ public class RepulsorFieldPlanner {
 	}
 
 	/**
-	 * Sets the goal point for repulsor calculations
-	 * @param goal robot target point
+	 * Sets the goal for the robot.
+	 * @param goal Goal position for the robot to move towards.
+	 * <p> If the goal is set to an empty optional, the robot will not move towards any goal.
+	 * MAKE SURE TO SET THE GOAL BEFORE CALLING getCmd()!
 	 */
-	public void setGoal(Translation2d goal) {
+    public void setGoal(Translation2d goal) {
 		this.goalOpt = Optional.of(goal);
 		if (simulateArrows) updateArrows();
 	}
 
 	/**
-	 *
-	 * @param pose current robot pose
-	 * @param currentSpeeds current robot speeds
-	 * @param maxSpeed max robot speed in meters
-	 * @param useGoal include goal in path calculation
-	 * @return SwerveSample object
+	 * Calculates a robot drivetrain in order to reach goal point.
+	 * MAKE SURE TO SET THE GOAL BEING USED BEFORE CALLING THIS METHOD!
+	 * 
+	 * @param pose Current pose of the robot on the field
+	 * @param currentSpeeds current robot relative ChassissSpeeds of the robot
+	 * @param maxSpeed Max speed of the robot in meters per second
+	 * @param useGoal If true, the robot will move towards the goal position.
+	 * @return SwerveSample object that contains a ChassissSpeeds that can be extracted to run the drivetrain.
 	 */
-	public SwerveSample getCmd(
-		Pose2d pose,
+    public SwerveSample getCmd(
+		Pose2d currentPose,
 		ChassisSpeeds currentSpeeds,
 		double maxSpeed,
 		boolean useGoal
 	) {
-		return getCmd(pose, currentSpeeds, maxSpeed, useGoal, pose.getRotation());
+		return getCmd(currentPose, currentSpeeds, maxSpeed, useGoal, currentPose.getRotation());
+		
 	}
 
 	/**
-	 *
-	 * @param pose current robot pose
-	 * @param currentSpeeds current robot speeds
-	 * @param maxSpeed max robot speed in meters
-	 * @param useGoal include goal in path calculation
-	 * @param goalRotation rotation of goal point
-	 * @return SwerveSample object
+	 * Calculates a robot drivetrain in order to reach goal point.
+	 * MAKE SURE TO SET THE GOAL BEING USED BEFORE CALLING THIS METHOD!
+	 * 
+	 * @param pose Current pose of the robot on the field
+	 * @param currentSpeeds current robot relative ChassissSpeeds of the robot
+	 * @param maxSpeed Max speed of the robot in meters per second
+	 * @param useGoal If true, the robot will move towards the goal position.
+	 * @param goalRotation The desired rotation of the robot when it reaches the goal.
+	 * @return SwerveSample object that contains a ChassissSpeeds that can be extracted to run the drivetrain.
 	 */
-	public SwerveSample getCmd(
+    public SwerveSample getCmd(
 		Pose2d pose,
 		ChassisSpeeds currentSpeeds,
 		double maxSpeed,
@@ -523,21 +565,20 @@ public class RepulsorFieldPlanner {
 		return traj;
 	}
 
-
 	/**
-	 * Gets the arrows ArrayList. For logging.
-	 * @return Arrows pose2d ArrayList
+	 * Returns the list of arrows that are used to visualize the repulsor field.
+	 * @return List of arrows that represent the repulsor field.
 	 */
-	public ArrayList<Pose2d> getArrows() {
+    public ArrayList<Pose2d> getArrows() {
 		return arrows;
 	}
 
 	/**
-	 * Gets all field obstacles that are present in the repulsor field.
-	 * @return allFieldObstacles Obstacle List
+	 * Returns the list of all obstacles in the field.
+	 * <p> Used for logging purposes
+	 * @return List of all obstacles in the field.
 	 */
-	public List<Obstacle> getAllFieldObstacles() {
+    public List<Obstacle> getAllFieldObstacles() {
 		return allFieldObstacles;
 	}
-
 }
