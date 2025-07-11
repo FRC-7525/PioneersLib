@@ -9,6 +9,11 @@ java {
     targetCompatibility = JavaVersion.VERSION_17
 }
 
+task vendordepsZip(type: Zip) {
+    from 'vendordeps'              
+    archiveClassifier.set('vendordeps')
+}
+
 // Publishing configuration for GitHub Packages
 publishing {
     publications {
@@ -17,13 +22,17 @@ publishing {
             
             groupId = 'com.github.FRC-7525'
             artifactId = 'pioneerslib'
-            version = '1.3.4'
+            version = '1.3.7'
             
             pom {
                 name = 'pioneersLib'
                 description = 'FRC Team 7525s Utility Library'
                 url = 'https://github.com/FRC-7525/PioneersLib'
                 
+                artifact vendordepsZip {
+                    classifier = 'vendordeps'
+                }
+
                 developers {
                     developer {
                         id = 'GreenTomato5'
