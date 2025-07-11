@@ -10,7 +10,9 @@ java {
 }
 
 task vendordepsZip(type: Zip) {
-    from 'vendordeps'              
+    from 'vendordeps'  
+    archiveBaseName.set('pioneerslib') 
+    archiveVersion.set(version)
     archiveClassifier.set('vendordeps')
 }
 
@@ -24,14 +26,14 @@ publishing {
             artifactId = 'pioneerslib'
             version = '1.3.7'
             
+            artifact vendordepsZip
+
             pom {
                 name = 'pioneersLib'
                 description = 'FRC Team 7525s Utility Library'
                 url = 'https://github.com/FRC-7525/PioneersLib'
                 
-                artifact vendordepsZip {
-                    classifier = 'vendordeps'
-                }
+               
 
                 developers {
                     developer {
