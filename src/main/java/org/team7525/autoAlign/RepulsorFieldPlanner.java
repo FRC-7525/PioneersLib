@@ -266,8 +266,8 @@ public class RepulsorFieldPlanner {
 public RepulsorFieldPlanner(List<Obstacle> fieldObstacles, List<Obstacle> walls, boolean simulateArrows) { //TODO change this constructor since it's goofy
 		this.fieldObstacles = fieldObstacles.isEmpty() ? DefaultObstalces.FIELD_OBSTACLES : fieldObstacles;
 		this.wallObstacles = walls.isEmpty() ? DefaultObstalces.WALLS : walls;
-		allFieldObstacles.addAll(DefaultObstalces.FIELD_OBSTACLES);
-		allFieldObstacles.addAll(DefaultObstalces.WALLS);
+		allFieldObstacles.addAll(fieldObstacles);
+		allFieldObstacles.addAll(wallObstacles);
 		this.simulateArrows = simulateArrows;
 
 		for (int i = 0; i < ARROWS_SIZE; i++) {
